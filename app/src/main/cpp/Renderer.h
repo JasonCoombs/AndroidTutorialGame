@@ -5,15 +5,17 @@
 
 class Renderer {
 public:
-    Renderer(android_app *app);
+  explicit Renderer(android_app *app);
+  ~Renderer();
 
-    ~Renderer();
-
-    void do_frame();
+  void do_frame();
 
 private:
-    EGLDisplay display;
-    EGLConfig config{};
-    EGLSurface surface;
-    EGLContext context;
+  EGLDisplay display{};
+  EGLConfig config{};
+  EGLSurface surface{};
+  EGLContext context{};
+
+  GLuint vao{}, vbo{};
+  GLuint program{};
 };

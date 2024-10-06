@@ -15,8 +15,8 @@ void on_app_cmd(android_app *app, int32_t cmd) {
       break;
     case APP_CMD_TERM_WINDOW: {
       LOGI("Terminating the window...");
-      Renderer *renderer = (Renderer *) app->userData;
-      if (renderer) delete renderer;
+      auto *renderer = (Renderer *) app->userData;
+      delete renderer;
     }
       break;
     default:
@@ -36,7 +36,7 @@ void android_main(android_app *app) {
 
     if (!app->userData) continue;
 
-    Renderer *renderer = (Renderer *) app->userData;
+    auto *renderer = (Renderer *) app->userData;
     renderer->do_frame();
   } while (!app->destroyRequested);
 }
