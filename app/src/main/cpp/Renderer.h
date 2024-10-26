@@ -18,4 +18,5 @@ private:
 
   GLuint vao{}, vbo{}, ebo{};
   GLuint program{};
+  GLint projection_location, model_location;
 };

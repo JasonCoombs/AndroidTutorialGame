@@ -1,5 +1,7 @@
 #include "Renderer.h"
 #include "logging.h"
+#include "glm/glm.hpp"
+#include "glm/gtc/type_ptr.hpp"
 
 #include <cassert>
 #include <GLES/egl.h>
@@ -10,8 +12,11 @@ precision mediump float;
 
 layout (location = 0) in vec2 a_pos;
 
+uniform mat4 projection;
+uniform mat4 model;
+
 void main() {
-  gl_Position = vec4(a_pos, 0.0, 1.0);
+  gl_Position = projection * model * vec4(a_pos, 0.0, 1.0);
 }
 )";
 
@@ -127,6 +132,9 @@ Renderer::Renderer(android_app *app) {
 
   glUseProgram(program);
   glUniform3f(glGetUniformLocation(program, "color"), 1.f, 1.f, 1.f);
+
+  projection_location = glGetUniformLocation(program, "projection");
+  model_location = glGetUniformLocation(program, "model");
 }
 
 Renderer::~Renderer() {
@@ -148,7 +156,19 @@ void Renderer::do_frame() {
   glViewport(0, 0, width, height);
   glClear(GL_COLOR_BUFFER_BIT);
 
+  float inv_aspect = (float) height / (float) width;
+  glm::mat4 projection = glm::ortho(-1.f, 1.f, -inv_aspect, inv_aspect);
+
+  static float angle = 0.f;
+  angle += .002f;
+
+  glm::mat4 model{1.f};
+  model = glm::rotate(model, angle, {0.f, 0.f, 1.f});
+
   glUseProgram(program);
+  glUniformMatrix4fv(projection_location, 1, GL_FALSE, glm::value_ptr(projection));
+  glUniformMatrix4fv(model_location, 1, GL_FALSE, glm::value_ptr(model));
+
   glBindVertexArray(vao);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
