@@ -27,12 +27,12 @@ void on_app_cmd(android_app *app, int32_t cmd) {
 void android_main(android_app *app) {
   app->onAppCmd = on_app_cmd;
 
-  android_poll_source *poll_source;
-  int events;
   do {
-    if (ALooper_pollAll(0, nullptr, &events, (void **) &poll_source) >= 0) {
-      if (poll_source) poll_source->process(app, poll_source);
-    }
+    android_poll_source *poll_source{};
+    int events{};
+    
+    int result = ALooper_pollOnce(0, nullptr, &events, (void **) &poll_source);
+    if (result >= 0 && poll_source) poll_source->process(app, poll_source);
 
     if (!app->userData) continue;
 

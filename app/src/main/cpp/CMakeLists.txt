@@ -4,7 +4,8 @@ project("mygame")
 
 add_library(mygame SHARED
         main.cpp
-        Renderer.cpp)
+        Renderer.cpp
+        Texture.cpp)
 
 add_subdirectory(glm)
 find_package(game-activity REQUIRED CONFIG)
