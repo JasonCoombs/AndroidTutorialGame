@@ -35,6 +35,13 @@ Texture::Texture(AAssetManager *asset_manager, const std::string &file_path) {
   stbi_image_free(data);
 }
 
+Texture::Texture(int width, int height, const uint8_t *data) : width(width), height(height) {
+  glGenTextures(1, &id);
+  glBindTexture(GL_TEXTURE_2D, id);
+  glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, width, height);
+  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+}
+
 Texture::~Texture() {
   glDeleteTextures(1, &id);
 }

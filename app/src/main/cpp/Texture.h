@@ -7,6 +7,7 @@
 class Texture {
 public:
   explicit Texture(AAssetManager *asset_manager, const std::string &file_path);
+  explicit Texture(int width, int height, const uint8_t *data);
   ~Texture();
 
   [[nodiscard]] auto get_width() const { return width; }

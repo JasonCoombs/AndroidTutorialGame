@@ -38,6 +38,8 @@ void main() {
 }
 )";
 
+constexpr uint8_t WHITE[] = {255, 255, 255, 255};
+
 Renderer::Renderer(android_app *app) {
   display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
   assert(display);
@@ -95,6 +97,9 @@ Renderer::Renderer(android_app *app) {
 
   uint32_t indices[] = {0, 1, 2, 0, 2, 3};
 
+  glGenVertexArrays(1, &vao);
+  glBindVertexArray(vao);
+
   glGenBuffers(1, &ebo);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof indices, indices, GL_STATIC_DRAW);
@@ -102,9 +107,6 @@ Renderer::Renderer(android_app *app) {
   glGenBuffers(1, &vbo);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
   glBufferData(GL_ARRAY_BUFFER, sizeof vertices, vertices, GL_STATIC_DRAW);
-
-  glGenVertexArrays(1, &vao);
-  glBindVertexArray(vao);
 
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
@@ -156,9 +158,7 @@ Renderer::Renderer(android_app *app) {
   projection_location = glGetUniformLocation(program, "projection");
   model_location = glGetUniformLocation(program, "model");
 
-  texture = std::make_unique<Texture>(app->activity->assetManager, "android_robot.png");
-
-  LOGI("texture is %dx%d", texture->get_width(), texture->get_height());
+  white = std::make_unique<Texture>(1, 1, WHITE);
 }
 
 Renderer::~Renderer() {
@@ -172,7 +172,7 @@ Renderer::~Renderer() {
   eglTerminate(display);
 }
 
-void Renderer::do_frame() {
+void Renderer::do_frame(const std::vector<DrawCommand> &cmds) {
   int width, height;
   eglQuerySurface(display, surface, EGL_WIDTH, &width);
   eglQuerySurface(display, surface, EGL_HEIGHT, &height);
@@ -183,18 +183,14 @@ void Renderer::do_frame() {
   float inv_aspect = (float) height / (float) width;
   glm::mat4 projection = glm::ortho(-1.f, 1.f, -inv_aspect, inv_aspect);
 
-  glm::mat4 model{1.f};
-
-  glUseProgram(program);
   glUniformMatrix4fv(projection_location, 1, GL_FALSE, glm::value_ptr(projection));
-  glUniformMatrix4fv(model_location, 1, GL_FALSE, glm::value_ptr(model));
-
   glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, texture->get_id());
 
-  glBindVertexArray(vao);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+  for (const auto &cmd: cmds) {
+    glUniformMatrix4fv(model_location, 1, GL_FALSE, glm::value_ptr(cmd.transformation));
+    glBindTexture(GL_TEXTURE_2D, cmd.texture ? cmd.texture->get_id() : white->get_id());
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+  }
 
   auto res = eglSwapBuffers(display, surface);
   assert(res);
