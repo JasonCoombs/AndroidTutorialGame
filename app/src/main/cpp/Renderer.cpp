@@ -154,6 +154,7 @@ Renderer::Renderer(android_app *app) {
   glUseProgram(program);
   glUniform3f(glGetUniformLocation(program, "color"), 1.f, 1.f, 1.f);
   glUniform1i(glGetUniformLocation(program, "tex"), 0);
+  glActiveTexture(GL_TEXTURE0);
 
   projection_location = glGetUniformLocation(program, "projection");
   model_location = glGetUniformLocation(program, "model");
@@ -173,7 +174,6 @@ Renderer::~Renderer() {
 }
 
 void Renderer::do_frame(const std::vector<DrawCommand> &cmds) {
-  int width, height;
   eglQuerySurface(display, surface, EGL_WIDTH, &width);
   eglQuerySurface(display, surface, EGL_HEIGHT, &height);
 
@@ -181,10 +181,8 @@ void Renderer::do_frame(const std::vector<DrawCommand> &cmds) {
   glClear(GL_COLOR_BUFFER_BIT);
 
   float inv_aspect = (float) height / (float) width;
-  glm::mat4 projection = glm::ortho(-1.f, 1.f, -inv_aspect, inv_aspect);
-
+  projection = glm::ortho(-1.f, 1.f, -inv_aspect, inv_aspect);
   glUniformMatrix4fv(projection_location, 1, GL_FALSE, glm::value_ptr(projection));
-  glActiveTexture(GL_TEXTURE0);
 
   for (const auto &cmd: cmds) {
     glUniformMatrix4fv(model_location, 1, GL_FALSE, glm::value_ptr(cmd.transformation));

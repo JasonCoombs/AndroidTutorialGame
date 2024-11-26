@@ -27,17 +27,50 @@ void on_app_cmd(android_app *app, int32_t cmd) {
 
 void android_main(android_app *app) {
   app->onAppCmd = on_app_cmd;
+  android_app_set_motion_event_filter(app, nullptr);
 
   do {
-    android_poll_source *poll_source{};
-    int events{};
+    bool done = false;
+    do {
+      android_poll_source *poll_source{};
+      int events{};
+      int result = ALooper_pollOnce(0, nullptr, &events, (void **) &poll_source);
 
-    int result = ALooper_pollOnce(0, nullptr, &events, (void **) &poll_source);
-    if (result >= 0 && poll_source) poll_source->process(app, poll_source);
+      switch (result) {
+        case ALOOPER_POLL_WAKE:
+        case ALOOPER_POLL_TIMEOUT:
+          done = true;
+          break;
+        case ALOOPER_POLL_ERROR:
+          LOGE("ALooper_pollOnce returned an error");
+          break;
+        case ALOOPER_POLL_CALLBACK:
+          break;
+        default:
+          if (poll_source) poll_source->process(app, poll_source);
+      }
+    } while (!done);
 
     if (!app->userData) continue;
-
     auto *game = (Game *) app->userData;
+
+    android_input_buffer *input_buffer = android_app_swap_input_buffers(app);
+    if (input_buffer) {
+      for (size_t i = 0; i < input_buffer->motionEventsCount; i++) {
+        GameActivityMotionEvent *motion_event = &input_buffer->motionEvents[i];
+        if (motion_event->pointerCount > 0) {
+          int32_t masked_action = motion_event->action & AMOTION_EVENT_ACTION_MASK;
+          if (masked_action == AMOTION_EVENT_ACTION_DOWN) {
+            float x = GameActivityPointerAxes_getX(&motion_event->pointers[0]);
+            float y = GameActivityPointerAxes_getY(&motion_event->pointers[0]);
+            game->touch_event({x, y});
+          }
+        }
+      }
+
+      android_app_clear_motion_events(input_buffer);
+    }
+
     game->update();
   } while (!app->destroyRequested);
 }
