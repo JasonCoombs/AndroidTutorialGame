@@ -33,7 +33,7 @@ private:
   GLuint program;
   GLint projection_location, model_location;
 
-  int width, height;
-  glm::mat4 projection;
+  int width{}, height{};
+  glm::mat4 projection{};
   std::unique_ptr<Texture> white;
 };
