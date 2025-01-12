@@ -7,6 +7,12 @@
 #include <GLES/egl.h>
 #include <GLES3/gl3.h>
 
+#define STB_RECT_PACK_IMPLEMENTATION
+#define STB_TRUETYPE_IMPLEMENTATION
+
+#include "stb_rect_pack.h"
+#include "stb_truetype.h"
+
 constexpr auto VERT_CODE = R"(#version 300 es
 precision mediump float;
 
@@ -79,7 +85,7 @@ Renderer::Renderer(android_app *app) {
 
   LOGI("EGL initialization complete.");
 
-  glClearColor(1.f, 1.f, 0.f, 1.f);
+  glClearColor(0.f, 0.f, 0.f, 1.f);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -160,6 +166,60 @@ Renderer::Renderer(android_app *app) {
   model_location = glGetUniformLocation(program, "model");
 
   white = std::make_unique<Texture>(1, 1, WHITE);
+
+  auto asset = AAssetManager_open(app->activity->assetManager, "font.ttf", AASSET_MODE_BUFFER);
+  if (!asset) {
+    LOGE("Failed to load font.ttf");
+    return;
+  }
+
+  auto buffer = (const uint8_t *) AAsset_getBuffer(asset);
+
+  if (!buffer) {
+    LOGE("Failed to load font.ttf");
+    return;
+  }
+
+  if (!stbtt_InitFont(&font.info, buffer, 0)) {
+    LOGE("Failed to initialize font");
+    return;
+  }
+
+  constexpr auto TEX_SIZE = 1024;
+  auto pixels = std::make_unique<uint8_t[]>(TEX_SIZE * TEX_SIZE);
+
+  stbtt_pack_context pack_context;
+  if (!stbtt_PackBegin(&pack_context, pixels.get(), TEX_SIZE, TEX_SIZE, 0, 1, nullptr)) {
+    LOGE("Failed to start font packing");
+    return;
+  }
+
+  font.size = 256.f;
+  stbtt_pack_range range{
+    font.size,
+    32,
+    nullptr,
+    96,
+    font.chardata,
+  };
+
+  if (!stbtt_PackFontRanges(&pack_context, buffer, 0, &range, 1)) {
+    LOGE("Failed to pack font ranges");
+    return;
+  }
+
+  stbtt_PackEnd(&pack_context);
+
+  auto tex_data = std::make_unique<uint8_t[]>(TEX_SIZE * TEX_SIZE * 4);
+  for (size_t i = 0; i < TEX_SIZE * TEX_SIZE; i++) {
+    tex_data[4 * i + 0] = 255;
+    tex_data[4 * i + 1] = 255;
+    tex_data[4 * i + 2] = 255;
+    tex_data[4 * i + 3] = pixels[i];
+  }
+
+  font.texture = std::make_unique<Texture>(TEX_SIZE, TEX_SIZE, tex_data.get());
+  font.loaded = true;
 }
 
 Renderer::~Renderer() {
@@ -186,7 +246,7 @@ void Renderer::do_frame(const std::vector<DrawCommand> &cmds) {
 
   for (const auto &cmd: cmds) {
     glUniformMatrix4fv(model_location, 1, GL_FALSE, glm::value_ptr(cmd.transformation));
-    glBindTexture(GL_TEXTURE_2D, cmd.texture ? cmd.texture->get_id() : white->get_id());
+    glBindTexture(GL_TEXTURE_2D, cmd.texture ? cmd.texture->get_id() : font.texture->get_id());
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
   }
 
