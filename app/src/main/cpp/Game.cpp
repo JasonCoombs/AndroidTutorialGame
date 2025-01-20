@@ -6,11 +6,15 @@ Game::Game(android_app *app) : renderer(app),
 
 void Game::update() {
   std::vector<DrawCommand> draw_commands{
-      DrawCommand{glm::translate(glm::mat4(1.f), glm::vec3(test_position, 0.f))},
+      // DrawCommand{glm::translate(glm::mat4(1.f), glm::vec3(test_position, 0.f))},
       // DrawCommand{glm::translate(glm::mat4(1.f), glm::vec3(test_position, 0.f)), &test_texture},
   };
 
-  renderer.do_frame(draw_commands);
+  std::vector<TextCommand> text_commands{
+      TextCommand{"Hi!", test_position},
+  };
+
+  renderer.do_frame(draw_commands, text_commands);
 }
 
 void Game::touch_event(glm::vec2 position, TouchEventType type) {
