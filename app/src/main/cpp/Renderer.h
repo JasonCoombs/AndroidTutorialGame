@@ -7,6 +7,7 @@
 #include "glm/glm.hpp"
 #include "Texture.h"
 #include "stb_truetype.h"
+#include "Camera.h"
 
 struct DrawCommand {
   glm::mat4 transformation;
@@ -30,16 +31,20 @@ struct TextCommand {
   Align align_x = Align::Center, align_y = Align::Center;
 };
 
+struct RenderData {
+  Camera &camera;
+  std::vector<DrawCommand> draw_cmds;
+  std::vector<TextCommand> text_cmds;
+};
+
 class Renderer {
 public:
   explicit Renderer(android_app *app);
   ~Renderer();
 
-  void do_frame(const std::vector<DrawCommand> &cmds, const std::vector<TextCommand> &text_cmds);
+  void do_frame(const RenderData &data);
 
   glm::ivec2 get_size() const { return {width, height}; }
-
-  glm::mat4 get_projection() const { return projection; }
 
 private:
   EGLDisplay display{};
@@ -49,10 +54,9 @@ private:
 
   GLuint vao{}, vbo{}, ebo{};
   GLuint program;
-  GLint projection_location, model_location, custom_tex_coords_location;
+  GLint projview_location, model_location, custom_tex_coords_location;
 
   int width{}, height{};
-  glm::mat4 projection{};
   std::unique_ptr<Texture> white;
 
   struct Font {

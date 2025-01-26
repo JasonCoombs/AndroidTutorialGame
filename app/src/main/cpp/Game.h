@@ -3,6 +3,7 @@
 #include <game-activity/native_app_glue/android_native_app_glue.h>
 
 #include "Renderer.h"
+#include "Camera.h"
 
 enum class TouchEventType {
   Down,
@@ -18,6 +19,7 @@ public:
   void update();
 
 private:
+  Camera camera;
   Renderer renderer;
   Texture test_texture;
   glm::vec2 test_position{};
