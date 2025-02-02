@@ -12,6 +12,7 @@
 struct DrawCommand {
   glm::mat4 transformation;
   Texture *texture;
+  glm::vec4 color;
 };
 
 enum class Align {
@@ -33,6 +34,7 @@ struct TextCommand {
 
 struct RenderData {
   Camera &camera;
+  glm::vec3 background_color;
   std::vector<DrawCommand> draw_cmds;
   std::vector<TextCommand> text_cmds;
 };
@@ -54,7 +56,7 @@ private:
 
   GLuint vao{}, vbo{}, ebo{};
   GLuint program;
-  GLint projview_location, model_location, custom_tex_coords_location;
+  GLint projview_location, model_location, custom_tex_coords_location, color_location;
 
   int width{}, height{};
   std::unique_ptr<Texture> white;
