@@ -10,7 +10,8 @@ public:
 
   void update_projection(float width, float height) {
     float inv_aspect = (float) height / (float) width;
-    projection = glm::ortho(-zoom, zoom, -zoom * inv_aspect, zoom * inv_aspect);
+    left = -zoom, right = zoom, bottom = -zoom * inv_aspect, top = zoom * inv_aspect;
+    projection = glm::ortho(left, right, bottom, top);
   }
 
   void update_view() {
@@ -28,4 +29,6 @@ public:
   glm::mat4 projection, view;
   glm::vec2 position;
   float zoom;
+
+  float left, right, top, bottom;
 };

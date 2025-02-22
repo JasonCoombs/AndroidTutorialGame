@@ -6,11 +6,6 @@ Game::Game(android_app *app) : camera(2.5f), renderer(app) {
   objects = {
       GameObject{
           .color = {1.f, 1.f, 0.f, 1.f},
-          .on_touch = [](glm::vec2 pos, TouchEventType type) {
-            if (type == TouchEventType::Down) {
-              LOGD("%f %f", pos.x, pos.y);
-            }
-          },
       },
   };
 }
