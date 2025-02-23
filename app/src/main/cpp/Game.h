@@ -11,12 +11,21 @@ enum class TouchEventType {
   Up,
 };
 
+struct GameState {
+  Camera &camera;
+};
+
 struct GameObject {
+  std::string tag{};
   glm::vec2 position{}, size{1.f};
   glm::vec4 color{1.f};
   Texture *texture{};
 
-  std::function<void(glm::vec2 position, TouchEventType type)> on_touch{};
+  bool selected{};
+  glm::vec2 selection_offset{};
+
+  std::function<void(GameObject &, GameState state)> on_update{};
+  std::function<void(GameObject &, GameState state, glm::vec2, TouchEventType)> on_touch{};
 };
 
 class Game {
