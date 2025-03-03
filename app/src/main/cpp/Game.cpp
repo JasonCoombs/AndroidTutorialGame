@@ -2,7 +2,9 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "logging.h"
 
-Game::Game(android_app *app) : camera(2.5f), renderer(app) {
+#include <sstream>
+
+Game::Game(android_app *app) : camera(2.5f), renderer(app, camera) {
   objects = {
       GameObject{
           .tag = "Player",
@@ -25,6 +27,57 @@ Game::Game(android_app *app) : camera(2.5f), renderer(app) {
           },
       },
   };
+
+  constexpr uint32_t BRICKS_PER_ROW = 5;
+  constexpr float BRICK_HEIGHT = .5f;
+  float brick_width = camera.zoom * 2.f / BRICKS_PER_ROW;
+
+  std::string map = R"(
+1 1 1 1 1
+1 2 0 2 1
+3 0 4 0 3
+0 5 5 5 0
+1 6 6 6 1
+)";
+
+  std::array colors = {
+      glm::vec4{1.f, .3f, .3f, 1.f},
+      glm::vec4{.3f, 1.f, .3f, 1.f},
+      glm::vec4{.3f, .3f, 1.f, 1.f},
+      glm::vec4{.3f, 1.f, 1.f, 1.f},
+      glm::vec4{1.f, .3f, 1.f, 1.f},
+      glm::vec4{1.f, 1.f, 1.f, 1.f},
+  };
+
+  std::stringstream map_stream{map};
+
+  std::string line;
+  float y_position = camera.top - BRICK_HEIGHT / 2.f;
+  while (std::getline(map_stream, line)) {
+    if (line.empty()) {
+      continue;
+    }
+
+    std::stringstream line_stream{line};
+    float x_position = camera.left + brick_width / 2.f;
+    for (uint32_t i = 0; i < BRICKS_PER_ROW; i++) {
+      int value;
+      line_stream >> value;
+
+      if (value > 0) {
+        objects.push_back(GameObject{
+            .tag = "Brick",
+            .position = {x_position, y_position},
+            .size = {brick_width * .95f, BRICK_HEIGHT * .95f},
+            .color = colors[value <= colors.size() ? value - 1 : 0],
+        });
+      }
+
+      x_position += brick_width;
+    }
+
+    y_position -= BRICK_HEIGHT;
+  }
 }
 
 void Game::update() {
@@ -32,7 +85,9 @@ void Game::update() {
 
   GameState state{camera};
   for (auto &object : objects) {
-    object.on_update(object, state);
+    if (object.on_update) {
+      object.on_update(object, state);
+    }
 
     auto T = glm::translate(glm::mat4{1.f}, glm::vec3(object.position, 0.f));
     auto S = glm::scale(glm::mat4{1.f}, glm::vec3(object.size, 0.f));
@@ -52,6 +107,9 @@ void Game::touch_event(glm::vec2 position, TouchEventType type) {
 
   GameState state{camera};
   for (auto &object : objects) {
+    if (!object.on_touch)
+      continue;
+
     if (object.selected || (object.on_touch && position.x > object.position.x - object.size.x / 2.f
         && position.x < object.position.x + object.size.x / 2.f
         && position.y > object.position.y - object.size.y / 2.f

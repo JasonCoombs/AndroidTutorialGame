@@ -5,8 +5,7 @@
 
 class Camera {
 public:
-  explicit Camera(float zoom = 1.f, glm::vec2 position = {}) : zoom(zoom), position(position),
-                                                               projection(), view() {}
+  explicit Camera(float zoom = 1.f, glm::vec2 position = {}) : zoom(zoom), position(position) {}
 
   void update_projection(float width, float height) {
     float inv_aspect = (float) height / (float) width;
@@ -26,9 +25,9 @@ public:
     return view;
   }
 
-  glm::mat4 projection, view;
+  glm::mat4 projection{}, view{};
   glm::vec2 position;
   float zoom;
 
-  float left, right, top, bottom;
+  float left{}, right{}, top{}, bottom{};
 };

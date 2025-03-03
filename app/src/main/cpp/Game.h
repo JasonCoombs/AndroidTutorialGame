@@ -24,8 +24,8 @@ struct GameObject {
   bool selected{};
   glm::vec2 selection_offset{};
 
-  std::function<void(GameObject &, GameState state)> on_update{};
-  std::function<void(GameObject &, GameState state, glm::vec2, TouchEventType)> on_touch{};
+  std::function<void(GameObject &, GameState)> on_update{};
+  std::function<void(GameObject &, GameState, glm::vec2, TouchEventType)> on_touch{};
 };
 
 class Game {
