@@ -26,6 +26,48 @@ Game::Game(android_app *app) : camera(2.5f), renderer(app, camera) {
             }
           },
       },
+      GameObject{
+          .tag = "Ball",
+          .size = {.25f, .25f},
+          .color = {1.f, 1.f, 1.f, 1.f},
+          .direction = {0.f, 1.f},
+          .speed = 5.f,
+          .on_update = [](GameObject &self, GameState state) {
+            self.position += self.direction * self.speed * state.dt;
+
+            if (self.position.y < state.camera.bottom + self.size.y / 2.f
+                && self.direction.y < 0.f) {
+              self.direction.y = -self.direction.y;
+            }
+
+            if (self.position.y > state.camera.top - self.size.y / 2.f
+                && self.direction.y > 0.f) {
+              self.direction.y = -self.direction.y;
+            }
+
+            if (self.position.x < state.camera.left + self.size.x / 2.f
+                && self.direction.x < 0.f) {
+              self.direction.x = -self.direction.x;
+            }
+
+            if (self.position.x > state.camera.right - self.size.x / 2.f
+                && self.direction.x > 0.f) {
+              self.direction.x = -self.direction.x;
+            }
+          },
+          .on_touch = [](GameObject &self, GameState state, glm::vec2 pos, TouchEventType type) {
+            if (type == TouchEventType::Down) {
+              self.selected = true;
+              self.selection_offset = pos - self.position;
+            } else if (type == TouchEventType::Up) {
+              self.selected = false;
+            } else if (type == TouchEventType::Move && self.selected) {
+              self.position.x = std::clamp((pos - self.selection_offset).x,
+                                           state.camera.left + self.size.x / 2.f,
+                                           state.camera.right - self.size.x / 2.f);
+            }
+          },
+      },
   };
 
   constexpr uint32_t BRICKS_PER_ROW = 5;
@@ -80,10 +122,10 @@ Game::Game(android_app *app) : camera(2.5f), renderer(app, camera) {
   }
 }
 
-void Game::update() {
+void Game::update(float dt) {
   RenderData data{camera, {.65f, .8f, 1.f}};
 
-  GameState state{camera};
+  GameState state{camera, dt};
   for (auto &object : objects) {
     if (object.on_update) {
       object.on_update(object, state);

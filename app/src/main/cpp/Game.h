@@ -13,6 +13,7 @@ enum class TouchEventType {
 
 struct GameState {
   Camera &camera;
+  float dt;
 };
 
 struct GameObject {
@@ -24,6 +25,9 @@ struct GameObject {
   bool selected{};
   glm::vec2 selection_offset{};
 
+  glm::vec2 direction{};
+  float speed{};
+
   std::function<void(GameObject &, GameState)> on_update{};
   std::function<void(GameObject &, GameState, glm::vec2, TouchEventType)> on_touch{};
 };
@@ -33,7 +37,7 @@ public:
   explicit Game(android_app *app);
 
   void touch_event(glm::vec2 position, TouchEventType type);
-  void update();
+  void update(float dt);
 
 private:
   Camera camera;

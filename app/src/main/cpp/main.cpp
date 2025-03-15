@@ -10,18 +10,16 @@ extern "C" {
 
 void on_app_cmd(android_app *app, int32_t cmd) {
   switch (cmd) {
-    case APP_CMD_INIT_WINDOW:
-      LOGI("Initializing the window...");
-      app->userData = new Game(app);
-      break;
-    case APP_CMD_TERM_WINDOW: {
-      LOGI("Terminating the window...");
-      auto *game = (Game *) app->userData;
-      delete game;
-    }
-      break;
-    default:
-      break;
+  case APP_CMD_INIT_WINDOW:LOGI("Initializing the window...");
+    app->userData = new Game(app);
+    break;
+  case APP_CMD_TERM_WINDOW: {
+    LOGI("Terminating the window...");
+    auto *game = (Game *) app->userData;
+    delete game;
+  }
+    break;
+  default:break;
   }
 }
 
@@ -29,7 +27,14 @@ void android_main(android_app *app) {
   app->onAppCmd = on_app_cmd;
   android_app_set_motion_event_filter(app, nullptr);
 
+  auto last = std::chrono::high_resolution_clock::now();
   do {
+    auto now = std::chrono::high_resolution_clock::now();
+    auto delta = now - last;
+    last = now;
+
+    float dt = std::chrono::duration_cast<std::chrono::duration<float>>(delta).count();
+
     bool done = false;
     do {
       android_poll_source *poll_source{};
@@ -37,21 +42,22 @@ void android_main(android_app *app) {
       int result = ALooper_pollOnce(0, nullptr, &events, (void **) &poll_source);
 
       switch (result) {
-        case ALOOPER_POLL_WAKE:
-        case ALOOPER_POLL_TIMEOUT:
-          done = true;
-          break;
-        case ALOOPER_POLL_ERROR:
-          LOGE("ALooper_pollOnce returned an error");
-          break;
-        case ALOOPER_POLL_CALLBACK:
-          break;
-        default:
-          if (poll_source) poll_source->process(app, poll_source);
+      case ALOOPER_POLL_WAKE:
+      case ALOOPER_POLL_TIMEOUT:done = true;
+        break;
+      case ALOOPER_POLL_ERROR:LOGE("ALooper_pollOnce returned an error");
+        break;
+      case ALOOPER_POLL_CALLBACK:break;
+      default:
+        if (poll_source)
+          poll_source->process(app, poll_source);
       }
     } while (!done);
 
-    if (!app->userData) continue;
+    if (!app->userData) {
+      continue;
+    }
+
     auto *game = (Game *) app->userData;
 
     android_input_buffer *input_buffer = android_app_swap_input_buffers(app);
@@ -66,28 +72,25 @@ void android_main(android_app *app) {
           TouchEventType type;
           bool valid = true;
           switch (masked_action) {
-            case AMOTION_EVENT_ACTION_DOWN:
-              type = TouchEventType::Down;
-              break;
-            case AMOTION_EVENT_ACTION_UP:
-              type = TouchEventType::Up;
-              break;
-            case AMOTION_EVENT_ACTION_MOVE:
-              type = TouchEventType::Move;
-              break;
-            default:
-              valid = false;
-              break;
+          case AMOTION_EVENT_ACTION_DOWN:type = TouchEventType::Down;
+            break;
+          case AMOTION_EVENT_ACTION_UP:type = TouchEventType::Up;
+            break;
+          case AMOTION_EVENT_ACTION_MOVE:type = TouchEventType::Move;
+            break;
+          default:valid = false;
+            break;
           }
 
-          if (valid) game->touch_event({x, y}, type);
+          if (valid)
+            game->touch_event({x, y}, type);
         }
       }
 
       android_app_clear_motion_events(input_buffer);
     }
 
-    game->update();
+    game->update(dt);
   } while (!app->destroyRequested);
 }
 
