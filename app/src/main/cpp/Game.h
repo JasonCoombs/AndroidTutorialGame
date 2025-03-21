@@ -28,7 +28,10 @@ struct GameObject {
   glm::vec2 direction{};
   float speed{};
 
+  float collision_radius;
+
   std::function<void(GameObject &, GameState)> on_update{};
+  std::function<void(GameObject &, GameState, GameObject &, glm::vec2)> on_collide{};
   std::function<void(GameObject &, GameState, glm::vec2, TouchEventType)> on_touch{};
 };
 

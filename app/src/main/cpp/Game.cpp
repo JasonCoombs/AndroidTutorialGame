@@ -8,6 +8,7 @@ Game::Game(android_app *app) : camera(2.5f), renderer(app, camera) {
   objects = {
       GameObject{
           .tag = "Player",
+          .position{},
           .size = {1.f, .25f},
           .color = {1.f, 1.f, 0.f, 1.f},
           .on_update = [](GameObject &self, GameState state) {
@@ -32,6 +33,7 @@ Game::Game(android_app *app) : camera(2.5f), renderer(app, camera) {
           .color = {1.f, 1.f, 1.f, 1.f},
           .direction = {0.f, 1.f},
           .speed = 5.f,
+          .collision_radius = .125f,
           .on_update = [](GameObject &self, GameState state) {
             self.position += self.direction * self.speed * state.dt;
 
@@ -55,18 +57,47 @@ Game::Game(android_app *app) : camera(2.5f), renderer(app, camera) {
               self.direction.x = -self.direction.x;
             }
           },
-          .on_touch = [](GameObject &self, GameState state, glm::vec2 pos, TouchEventType type) {
-            if (type == TouchEventType::Down) {
-              self.selected = true;
-              self.selection_offset = pos - self.position;
-            } else if (type == TouchEventType::Up) {
-              self.selected = false;
-            } else if (type == TouchEventType::Move && self.selected) {
-              self.position.x = std::clamp((pos - self.selection_offset).x,
-                                           state.camera.left + self.size.x / 2.f,
-                                           state.camera.right - self.size.x / 2.f);
+          .on_collide = [](GameObject &self,
+                           GameState state,
+                           GameObject &other,
+                           glm::vec2 difference) {
+            enum { UP, RIGHT, DOWN, LEFT };
+            glm::vec2 directions[]{{0.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, -1.0f}, {-1.0f, 0.0f}};
+
+            float max = 0.0f;
+            unsigned int direction;
+            for (unsigned int i = 0; i < 4; i++) {
+              float dot = glm::dot(glm::normalize(difference), directions[i]);
+
+              if (dot > max) {
+                max = dot;
+                direction = i;
+              }
             }
-          },
+
+            if (direction == LEFT || direction == RIGHT) {
+              self.direction.x = -self.direction.x;
+              float penetration = self.collision_radius - std::abs(difference.x);
+              if (direction == LEFT) {
+                self.position.x += penetration;
+              } else {
+                self.position.x -= penetration;
+              }
+            } else {
+              self.direction.y = -self.direction.y;
+              float penetration = self.collision_radius - std::abs(difference.y);
+              if (direction == UP) {
+                self.position.y -= penetration;
+              } else {
+                self.position.y += penetration;
+              }
+            }
+
+            if (other.tag == "Player" && direction == DOWN) {
+              self.direction.x = (self.position.x - other.position.x) / (other.size.x / 2.f);
+              self.direction = glm::normalize(self.direction);
+            }
+          }
       },
   };
 
@@ -129,6 +160,23 @@ void Game::update(float dt) {
   for (auto &object : objects) {
     if (object.on_update) {
       object.on_update(object, state);
+    }
+
+    if (object.on_collide) {
+      for (auto &other : objects) {
+        if (&other == &object) {
+          continue;
+        }
+
+        auto difference = object.position - other.position;
+        auto clamped = glm::clamp(difference, -other.size / 2.f, other.size / 2.f);
+        auto closest = other.position + clamped;
+        auto closest_difference = closest - object.position;
+
+        if (glm::length(closest_difference) < object.collision_radius) {
+          object.on_collide(object, state, other, closest_difference);
+        }
+      }
     }
 
     auto T = glm::translate(glm::mat4{1.f}, glm::vec3(object.position, 0.f));
