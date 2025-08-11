@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 #include <GLES/egl.h>
 #include <game-activity/native_app_glue/android_native_app_glue.h>
 

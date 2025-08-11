@@ -57,7 +57,7 @@ Game::Game(android_app *app) : camera(2.5f), renderer(app, camera) {
               self.direction.x = -self.direction.x;
             }
           },
-          .on_collide = [](GameObject &self,
+          .on_collide = [this](GameObject &self,
                            GameState state,
                            GameObject &other,
                            glm::vec2 difference) {
@@ -96,6 +96,20 @@ Game::Game(android_app *app) : camera(2.5f), renderer(app, camera) {
             if (other.tag == "Player" && direction == DOWN) {
               self.direction.x = (self.position.x - other.position.x) / (other.size.x / 2.f);
               self.direction = glm::normalize(self.direction);
+            }
+            if (other.tag == "Brick") {
+              GameObject& element_to_remove = objects[other.vectorPos];
+
+              // Convert the reference to an iterator
+              GameObject* ptr_to_element = &element_to_remove;
+              auto offset = std::distance(objects.data(), ptr_to_element);
+              auto it_to_erase = objects.begin() + offset;
+
+              // Renumber the vector positions of the remaining elements
+              for (auto it = it_to_erase + 1; it != objects.end(); ++it) {
+                it->vectorPos--;
+              }
+              objects.erase(it_to_erase);
             }
           }
       },
@@ -139,6 +153,7 @@ Game::Game(android_app *app) : camera(2.5f), renderer(app, camera) {
 
       if (value > 0) {
         objects.push_back(GameObject{
+            .vectorPos = objects.size(),
             .tag = "Brick",
             .position = {x_position, y_position},
             .size = {brick_width * .95f, BRICK_HEIGHT * .95f},

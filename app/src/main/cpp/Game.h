@@ -1,7 +1,7 @@
 #pragma once
 
 #include <game-activity/native_app_glue/android_native_app_glue.h>
-
+#include <functional>
 #include "Renderer.h"
 #include "Camera.h"
 
@@ -17,6 +17,7 @@ struct GameState {
 };
 
 struct GameObject {
+  std::vector<GameObject>::size_type vectorPos;
   std::string tag{};
   glm::vec2 position{}, size{1.f};
   glm::vec4 color{1.f};
